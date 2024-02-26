@@ -2,7 +2,8 @@ const { Sequelize ,DataTypes } = require('sequelize');
 const asyncHandler = require("express-async-handler")
 const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
-
+const multer = require('multer');
+const path = require('path');
 const db = require('../config/dbconnection.js');
 const User = db.user;
 
@@ -18,9 +19,9 @@ const registrationSchema = Joi.object({
   .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}|:"<>?`\-=[\];',./\\^]*).{8,}$/)
   .required(),
   confirmPassword: Joi.string().valid(Joi.ref('password')).required().strict(),
-  year: Joi.string().valid('FE', 'SE', 'TE', 'BE'),
-  branch: Joi.string().valid('Computer', 'IT', 'Mechanical', 'Civil'),
- 
+  year: Joi.string().valid('FE', 'SE', 'TE', 'BE').required(),
+  branch: Joi.string().valid('Computer', 'IT', 'Mechanical', 'Civil').required(),
+
 });
 
 const registerUser = asyncHandler(async (req, res) => {
@@ -50,7 +51,7 @@ const registerUser = asyncHandler(async (req, res) => {
       password: hashedPassword,
       year,
       branch,
-     
+  
     });
 
     res.status(201).json(newUser);
@@ -90,7 +91,7 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 
     // Generate a JWT token for authentication using the secret key from the environment variable
-    const token = jwt.sign({ id: user.id, role: user.role }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '5min' });
+    const token = jwt.sign({ id: user.id, role: user.role }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '24hr' });
 
     res.status(200).json({ userId: user.id, role: user.role, token });
   } catch (error) {
@@ -99,6 +100,74 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 });
 
+
+
+
+
+const editUser = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+    const updatedFields = req.body;
+
+    try {
+        // Find the user by ID
+        const user = await User.findByPk(userId);
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Update the user's profile with the provided optional fields
+        await user.update({
+            ...updatedFields,
+            profilePicture: req.file ? req.file.filename : user.profilePicture, // Update the profile picture if a new file is uploaded
+            email: user.email, // Assuming email is not updatable
+            password: user.password, // Assuming password is not updatable
+            confirmPassword: user.confirmPassword, // Assuming confirmPassword is not updatable
+            role: user.role, // Assuming role is not updatable
+        });
+
+        // Optionally, you can return the updated user
+        return res.status(200).json({ message: 'Profile updated successfully', user });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+const viewProfileall = asyncHandler(async (req, res) => {
+  try {
+    // Fetch all user details from the database
+    const allUsers = await User.findAll();
+
+    if (!allUsers || allUsers.length === 0) {
+      res.status(404).json({ error: 'No users found' });
+      return;
+    }
+
+    // Respond with the array of user details
+    res.status(200).json({ users: allUsers });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+const viewProfile = asyncHandler(async (req, res) => {
+  try {
+    // Fetch the user details from the database using the decoded user ID
+    const userId = req.user.id;
+    const currentUser = await User.findByPk(userId);
+
+    if (!currentUser) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    // Respond with the user details
+    res.status(200).json({ user: currentUser });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 //private access
 const currentUser = asyncHandler(async (req, res) => {
@@ -122,6 +191,9 @@ const currentUser = asyncHandler(async (req, res) => {
 module.exports={
     registerUser,
     loginUser,
-    currentUser
+    editUser,
+    currentUser,
+    viewProfile,
+    viewProfileall
    
 }

@@ -21,10 +21,15 @@ db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
 db.user = require('../models/userModel')(sequelize,DataTypes);
+db.question = require('../models/questionsModel')(sequelize,DataTypes);
+db.userProgress = require('../models/userProgressModel')(sequelize,DataTypes);
+
+db.user.hasMany(db.userProgress, { foreignKey: 'user_id' });
+db.question.hasMany(db.userProgress, { foreignKey: 'question_id' });
+db.userProgress.belongsTo(db.user, { foreignKey: 'user_id' });
+db.userProgress.belongsTo(db.question, { foreignKey: 'question_id' });
 
 
-
-
-db.sequelize.sync({force:false });
+db.sequelize.sync({force:false});
 
 module.exports = db;
