@@ -5,6 +5,7 @@ const compilex = require('compilex');
 const passport = require('passport');
 const session = require('express-session');
 require("dotenv").config();
+const readline = require('readline');
 
 const errorHandler = require("./middleware/errorHandler")
 const port = process.env.PORT;
@@ -22,21 +23,32 @@ app.use(passport.session());
 const options = { stats: true };
 compilex.init(options);
 
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
 app.post('/compile', (req, res) => {
   const code = req.body.code;
   const language = 'python';
+  const input = req.body.input;
   const envData = { OS: 'windows' };
 
-  compilex.compilePython(envData, code, (data) => {
-    console.log("Compilation response:", data); // Log the response data
-    if (data.error) {
+    compile(code, input);
+
+  function compile(code, input) {
+    compilex.compilePythonWithInput(envData, code, input, (data) => {
+      console.log("Compilation response:", data); // Log the response data
+      if (data.error) {
         // If there's a compilation error, send it back to the client
         res.status(400).json({ error: data.error });
-    } else {
+      } else {
         res.json({ output: data.output });
-    }
+      }
+    });
+  }
 });
-});
+
 // Configure Passport to use Google Strategy
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 passport.use(new GoogleStrategy({
@@ -75,7 +87,6 @@ passport.deserializeUser((id, done) => {
 
 
 app.use('/api/users/',require("./routes/authRoutes"));
-
 
 
 app.use(errorHandler)
