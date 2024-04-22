@@ -40,13 +40,8 @@ app.post('/compile', (req, res) => {
 // Configure Passport to use Google Strategy
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 passport.use(new GoogleStrategy({
-<<<<<<< HEAD
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-=======
-  clientID: 'google_client_id',
-  clientSecret: 'google_client_secret',
->>>>>>> d0cf7d66058ca764433cf6277e431463172c0dd6
   callbackURL: 'http://localhost:3001/api/users/auth/google/callback', // Adjust the callback URL
 },
 (accessToken, refreshToken, profile, done) => {
